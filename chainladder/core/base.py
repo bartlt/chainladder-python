@@ -768,7 +768,14 @@ class TriangleBase(
             return pd.api.interchange.from_dataframe(data)
         if hasattr(pd.DataFrame, "from_arrow"):
             return pd.DataFrame.from_arrow(data)
-        import pyarrow as pa
+        try:
+            import pyarrow as pa
+        except ImportError as e:
+            raise ImportError(
+                "Converting an Arrow PyCapsule (__arrow_c_stream__) object to a "
+                "pandas DataFrame requires pandas>=3.0 or pyarrow. Install "
+                "pyarrow, upgrade pandas, or pass a pandas DataFrame."
+            ) from e
 
         return pa.table(data).to_pandas()
 

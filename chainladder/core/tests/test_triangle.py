@@ -1557,6 +1557,27 @@ def test_triangle_from_dataframe_interchange_protocol() -> None:
     assert tri == expected
 
 
+def test_interchange_arrow_without_pyarrow_on_pandas2_raises(monkeypatch) -> None:
+    """
+    Without pandas.DataFrame.from_arrow (pandas 2) and without pyarrow, an
+    Arrow PyCapsule-only object should raise an informative ImportError.
+
+    Returns
+    -------
+    None
+    """
+    import sys
+
+    class ArrowOnly:
+        def __arrow_c_stream__(self, requested_schema=None):
+            raise AssertionError("should not be reached")
+
+    monkeypatch.delattr(pd.DataFrame, "from_arrow", raising=False)
+    monkeypatch.setitem(sys.modules, "pyarrow", None)
+    with pytest.raises(ImportError, match="pandas>=3.0 or pyarrow"):
+        cl.Triangle._interchange_dataframe(ArrowOnly())
+
+
 def test_array_function_unhandled_raises(raa: Triangle) -> None:
     """
     __array_function__ should return NotImplemented for numpy functions that
