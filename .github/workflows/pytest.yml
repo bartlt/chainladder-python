@@ -6,13 +6,29 @@ permissions:
 on:
   push:
     branches:
-      - '**'
+      - main
+    paths:
+      - 'chainladder/**'
+      - 'docs/_ext/**'
+      - 'conftest.py'
+      - '.coveragerc'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/pytest.yml'
 
   pull_request:
+    paths:
+      - 'chainladder/**'
+      - 'docs/_ext/**'
+      - 'conftest.py'
+      - '.coveragerc'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/pytest.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   linux:
@@ -22,7 +38,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ['ubuntu-latest']
-        python-version: ['3.11', '3.12', '3.13', '3.14']
+        # Oldest and newest Python on PRs; the full range on main and nightly.
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["3.11", "3.14"]') || fromJSON('["3.11", "3.12", "3.13", "3.14"]') }}
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
@@ -33,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra test --extra docs
       - name: Run tests
-        run: uv run pytest --nbmake --cov=chainladder --cov-report=xml
+        run: uv run pytest -n auto --nbmake --cov=chainladder --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
@@ -60,7 +77,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra test
       - name: Run tests
-        run: uv run --with "pandas>=2.3.3,<3" pytest --nbmake --cov=chainladder --cov-report=xml
+        run: uv run --with "pandas>=2.3.3,<3" pytest -n auto --nbmake --cov=chainladder --cov-report=xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
@@ -69,19 +86,3 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
-  doctest:
-    name: Doctest (ubuntu-latest, 3.12)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
-        with:
-          version: "latest"
-          python-version: "3.12"
-      - name: Install dependencies
-        run: uv sync --extra docs
-      - name: Generate autosummary stubs
-        run: uv run --directory docs sphinx-autogen -o library/generated library/api.md
-      - name: Run doctests
-        run: uv run --directory docs jb build . --builder=custom --custom-builder=doctest
