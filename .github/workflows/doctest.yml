@@ -1,0 +1,45 @@
+name: Doctest
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chainladder/**'
+      - 'docs/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/doctest.yml'
+
+  pull_request:
+    paths:
+      - 'chainladder/**'
+      - 'docs/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/doctest.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  doctest:
+    name: Doctest (ubuntu-latest, 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          version: "latest"
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --extra docs
+      - name: Generate autosummary stubs
+        run: uv run --directory docs sphinx-autogen -o library/generated library/api.md
+      - name: Run doctests
+        run: uv run --directory docs jb build . --builder=custom --custom-builder=doctest

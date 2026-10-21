@@ -6,13 +6,23 @@ permissions:
 on:
   push:
     branches:
-      - '**'
+      - main
+    paths:
+      - '**.py'
+      - '**.ipynb'
+      - 'pyproject.toml'
+      - '.github/workflows/ruff.yml'
 
   pull_request:
+    paths:
+      - '**.py'
+      - '**.ipynb'
+      - 'pyproject.toml'
+      - '.github/workflows/ruff.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
