@@ -72,3 +72,4 @@ Licenses
 This package is released under `Mozilla Public License 2.0`_.
 
 .. _Mozilla Public License 2.0: https://github.com/casact/chainladder-python/blob/master/LICENSE
+
