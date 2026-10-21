@@ -1520,8 +1520,9 @@ def test_array_dunder(raa: Triangle) -> None:
 def test_triangle_from_dataframe_interchange_protocol() -> None:
     """
     Triangle() should accept any object supporting the __dataframe__
-    interchange protocol (e.g. a polars DataFrame), converting it to a
-    pandas DataFrame via _interchange_dataframe() under the hood.
+    interchange protocol or the Arrow PyCapsule interface (e.g. a polars
+    DataFrame), converting it to a pandas DataFrame via
+    _interchange_dataframe() under the hood.
 
     Returns
     -------
@@ -1535,7 +1536,7 @@ def test_triangle_from_dataframe_interchange_protocol() -> None:
         "values": [100, 150, 120, 180],
     })
     pl_df = polars.from_pandas(df)
-    assert hasattr(pl_df, "__dataframe__")
+    assert hasattr(pl_df, "__dataframe__") or hasattr(pl_df, "__arrow_c_stream__")
     assert not isinstance(pl_df, pd.DataFrame)
 
     tri = cl.Triangle(
@@ -1554,6 +1555,27 @@ def test_triangle_from_dataframe_interchange_protocol() -> None:
     )
 
     assert tri == expected
+
+
+def test_interchange_arrow_without_pyarrow_on_pandas2_raises(monkeypatch) -> None:
+    """
+    Without pandas.DataFrame.from_arrow (pandas 2) and without pyarrow, an
+    Arrow PyCapsule-only object should raise an informative ImportError.
+
+    Returns
+    -------
+    None
+    """
+    import sys
+
+    class ArrowOnly:
+        def __arrow_c_stream__(self, requested_schema=None):
+            raise AssertionError("should not be reached")
+
+    monkeypatch.delattr(pd.DataFrame, "from_arrow", raising=False)
+    monkeypatch.setitem(sys.modules, "pyarrow", None)
+    with pytest.raises(ImportError, match="pandas>=3.0 or pyarrow"):
+        cl.Triangle._interchange_dataframe(ArrowOnly())
 
 
 def test_array_function_unhandled_raises(raa: Triangle) -> None:
