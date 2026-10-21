@@ -43,3 +43,4 @@ These are produced by the build and should not be edited directly. Edits will be
 | --- | --- |
 | `_build/` | `jb build .` / `sphinx-build`. Gitignored. |
 | `library/generated/*.rst` | `sphinx.ext.autosummary` (`autosummary_generate = True` in `conf.py`, driven by the `:toctree: generated/` directives in `library/api.md`). |
+
