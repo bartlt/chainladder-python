@@ -58,7 +58,8 @@ class Triangle(TriangleBase):
         A single dataframe that contains columns representing all other
         arguments to the Triangle constructor. One may supply a DataFrame-like
         object (referred to as DataFrameXchg) supporting the __dataframe__
-        protocol, which will then be converted to a pandas DataFrame. If
+        protocol or the Arrow PyCapsule interface (__arrow_c_stream__), which
+        will then be converted to a pandas DataFrame. If
         supplying a dict, it must be structured such that a pandas DataFrame
         created from it will be accepted by the constructor. If omitted (or
         if all arguments are omitted), an empty Triangle is returned.
@@ -516,7 +517,9 @@ class Triangle(TriangleBase):
             return
         elif isinstance(data, dict):
             data = pd.DataFrame(data)
-        elif not isinstance(data, pd.DataFrame) and hasattr(data, "__dataframe__"):
+        elif not isinstance(data, pd.DataFrame) and (
+            hasattr(data, "__dataframe__") or hasattr(data, "__arrow_c_stream__")
+        ):
             data = self._interchange_dataframe(data)
         if valuation is not None and age is not None:
             raise ValueError("Only one of `valuation` or `age` may be specified.")

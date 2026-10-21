@@ -703,7 +703,8 @@ class TriangleBase(
         val_array = val_array[:, None]
         s = slice(None, -1) if ddims[-1] == 9999 else slice(None, None)
         val_array = (
-            val_array.astype("datetime64[M]") + ddim_arr[s][None, :] + 1
+            val_array.astype("datetime64[M]")
+            + (ddim_arr[s][None, :] + 1).astype("timedelta64[M]")
         ).astype(__dt64_dtype__) - np.timedelta64(1, __dt64_unit__)
         if ddims[-1] == 9999:
             ult = np.repeat(np.datetime64(options.ULT_VAL), val_array.shape[0])[:, None]
@@ -751,19 +752,25 @@ class TriangleBase(
     @staticmethod
     def _interchange_dataframe(data: DataFrameXchg) -> DataFrame:
         """
-        Convert an object supporting the __dataframe__ protocol to a pandas DataFrame.
+        Convert a DataFrame-like object to a pandas DataFrame.
 
         Parameters
         ----------
         data :
-            Dataframe object supporting the __dataframe__ protocol.
+            Dataframe object supporting the __dataframe__ interchange protocol
+            or the Arrow PyCapsule (__arrow_c_stream__) interface.
         Returns
         -------
         out: pd.DataFrame
             A pandas DataFrame.
         """
+        if hasattr(data, "__dataframe__"):
+            return pd.api.interchange.from_dataframe(data)
+        if hasattr(pd.DataFrame, "from_arrow"):
+            return pd.DataFrame.from_arrow(data)
+        import pyarrow as pa
 
-        return pd.api.interchange.from_dataframe(data)
+        return pa.table(data).to_pandas()
 
     def __array_function__(self, func, types, args, kwargs):
         from chainladder.utils.utility_functions import concat

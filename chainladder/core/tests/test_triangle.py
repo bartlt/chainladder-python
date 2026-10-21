@@ -1520,8 +1520,9 @@ def test_array_dunder(raa: Triangle) -> None:
 def test_triangle_from_dataframe_interchange_protocol() -> None:
     """
     Triangle() should accept any object supporting the __dataframe__
-    interchange protocol (e.g. a polars DataFrame), converting it to a
-    pandas DataFrame via _interchange_dataframe() under the hood.
+    interchange protocol or the Arrow PyCapsule interface (e.g. a polars
+    DataFrame), converting it to a pandas DataFrame via
+    _interchange_dataframe() under the hood.
 
     Returns
     -------
@@ -1535,7 +1536,7 @@ def test_triangle_from_dataframe_interchange_protocol() -> None:
         "values": [100, 150, 120, 180],
     })
     pl_df = polars.from_pandas(df)
-    assert hasattr(pl_df, "__dataframe__")
+    assert hasattr(pl_df, "__dataframe__") or hasattr(pl_df, "__arrow_c_stream__")
     assert not isinstance(pl_df, pd.DataFrame)
 
     tri = cl.Triangle(
